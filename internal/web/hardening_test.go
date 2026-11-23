@@ -25,6 +25,8 @@ func TestConfigResolve(t *testing.T) {
 		{"production explicit on", Config{AppEnv: "production", SecureCookiesEnv: "true", CSPMode: "report"}, true, false},
 		{"development explicit off needs no opt-out", Config{AppEnv: "development", SecureCookiesEnv: "false", CSPMode: "report"}, false, false},
 		{"development explicit on", Config{AppEnv: "development", SecureCookiesEnv: "true", CSPMode: "enforce"}, true, false},
+		{"production refuses the style guide", Config{AppEnv: "production", CSPMode: "report", StyleGuide: true}, false, true},
+		{"development serves the style guide", Config{AppEnv: "development", CSPMode: "report", StyleGuide: true}, false, false},
 		{"unknown env", Config{AppEnv: "staging", CSPMode: "report"}, false, true},
 		{"unknown cookies", Config{AppEnv: "production", SecureCookiesEnv: "maybe", CSPMode: "report"}, false, true},
 		{"unknown csp", Config{AppEnv: "production", CSPMode: "loud"}, false, true},

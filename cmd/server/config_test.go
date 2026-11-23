@@ -72,3 +72,35 @@ func TestRulesBuildTimeoutFromEnvironment(t *testing.T) {
 		}
 	}
 }
+
+// PERF_TRACE puts database timings in every answer: development only (the style guide is refused the same way by web.Config.Resolve).
+func TestPerfTraceIsRefusedInProduction(t *testing.T) {
+	for _, tt := range []struct {
+		env     map[string]string
+		wantErr bool
+	}{
+		{map[string]string{"PERF_TRACE": "true"}, true}, // APP_ENV defaults to production
+		{map[string]string{"PERF_TRACE": "true", "APP_ENV": "production"}, true},
+		{map[string]string{"PERF_TRACE": "true", "APP_ENV": "development"}, false},
+		{map[string]string{"APP_ENV": "production"}, false},
+	} {
+		var cfg config
+		err := env.Load(&cfg, &env.Options{Source: env.Map(envMap(tt.env))})
+		if err == nil {
+			err = cfg.validate()
+		}
+		if (err != nil) != tt.wantErr || (err != nil && !strings.Contains(err.Error(), "PERF_TRACE")) {
+			t.Errorf("%v: err = %v, wantErr %v", tt.env, err, tt.wantErr)
+		}
+	}
+}
+
+// server seed loads accounts with a published password: it refuses a production environment before it touches any database.
+func TestSeedRefusesProduction(t *testing.T) {
+	t.Setenv("APP_ENV", "production")
+	t.Setenv("DATABASE_URL", "postgres://nobody@127.0.0.1:1/none") // never reached
+	err := runSeed(nil)
+	if err == nil || !strings.Contains(err.Error(), "refusing to seed") {
+		t.Fatalf("seed in production = %v, want the refusal", err)
+	}
+}

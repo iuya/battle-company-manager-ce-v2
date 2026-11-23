@@ -381,9 +381,9 @@ Environment variables (loaded by `go-simpler.org/env`; `.env.example` lists them
 | `PORT` | `8080` | HTTP port |
 | `LISTEN_HOST` | empty (every interface) | Address the server listens on. Keep it empty in the container (`APP_BIND` limits the host side). `make run`, `make dev` and `make demo` default it to `127.0.0.1`, and the browser tests set it too: a loopback-only server raises no firewall prompt (Windows asks for every new build of `go run` or `air`). `make run LISTEN_HOST=` opens the development server to the network, for a phone on the same Wi-Fi |
 | `STATIC_MAX_AGE` | `0s` | Cache lifetime of static files requested without their `?v=` hash (`no-cache` when 0; the templates always add the hash, and those requests are cached for a year) |
-| `PERF_TRACE` | `false` | Adds a `Server-Timing` header (time, database statements) to every answer, for `make perf` ([performance.md](performance.md)); development only |
+| `PERF_TRACE` | `false` | Adds a `Server-Timing` header (time, database statements) to every answer, for `make perf` ([performance.md](performance.md)); development only: refused at start with `APP_ENV=production` |
 | `E2E_DICE`, `E2E_DICE_TOKEN` | `false`, unset | Scripted server dice for the browser tests (`/_e2e/dice`); development only: refused at start with `APP_ENV=production`, and without a token |
-| `STYLEGUIDE` | `false` | Serve `/styleguide`; `make run`, `make dev` and `make demo` set it to `true` |
+| `STYLEGUIDE` | `false` | Serve `/styleguide`; `make run`, `make dev` and `make demo` set it to `true`; refused at start with `APP_ENV=production` |
 | `APP_ENV` | `production` | `production` is the default; `development` (set by `make run`, `dev`, `demo`) is for plain http on localhost. Anything else is refused at start |
 | `SECURE_COOKIES` | unset | `Secure` session, theme and glossary cookies, and the `Strict-Transport-Security` header. Unset: on in production, off in development. `false` in production is refused at start unless `ALLOW_INSECURE_COOKIES=true` (then it starts with a warning). Behind a TLS proxy `true` is the setting |
 | `ALLOW_INSECURE_COOKIES` | `false` | Lets production start with `SECURE_COOKIES=false` (plain http on a private network, a try-out) |
@@ -432,7 +432,7 @@ restore: take a backup before upgrading ([backup-restore.md](backup-restore.md))
 | `make dev` | Same with live reload (air) and Tailwind in watch mode |
 | `make user EMAIL=… NAME=…` | Creates an account (asks for the password) |
 | `make grant EMAIL=… ROLE=…` | Changes an account's role (`user`, `admin`, `superuser`; `CREATE=1` lets a user create campaigns) |
-| `make seed [PASSWORD=…]` | Demo accounts, a campaign with companies and matches for local development |
+| `make seed [PASSWORD=…]` | Demo accounts, a campaign with companies and matches for local development; `server seed` refuses to run when `APP_ENV=production` is set (`--force` overrides) |
 | `make demo [PASSWORD=…]` | **Destructive: empties the development database**, loads the rich demo world ([demo-world.md](demo-world.md)) and runs the server on :8080; the output is kept in `tmp/demo-world.txt` |
 | `make db-reset` | **Destructive:** drops the development database (all data) and starts an empty one |
 | `make test` | Unit tests (the PostgreSQL tests are skipped) |

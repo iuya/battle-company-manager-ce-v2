@@ -52,6 +52,9 @@ func (c config) validate() error {
 	if c.RulesBuildTimeout < time.Second {
 		return fmt.Errorf("RULES_BUILD_TIMEOUT %s: want at least 1s", c.RulesBuildTimeout)
 	}
+	if c.PerfTrace && c.Web.Production() {
+		return errors.New("refusing to start: PERF_TRACE adds a Server-Timing header with database timings to every answer and is for development; it is off in production (APP_ENV=development)")
+	}
 	if c.CampaignLimit < 1 {
 		return fmt.Errorf("CAMPAIGN_LIMIT %d: want at least 1", c.CampaignLimit)
 	}

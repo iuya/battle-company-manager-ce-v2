@@ -92,6 +92,8 @@ jobs:
           done
           if [ -z "$ok" ]; then echo "::error::the image did not become ready"; docker logs bcm-smoke; exit 1; fi
           curl -fsS http://127.0.0.1:8080/healthz; echo
+          # the production image must not carry the development aids: no Server-Timing (PERF_TRACE) on an answer
+          if curl -fsSI http://127.0.0.1:8080/login | grep -qi '^server-timing:'; then echo "::error::the image answers with Server-Timing"; exit 1; fi
           curl -fsS http://127.0.0.1:8080/login | grep -qi "password" || { echo "::error::/login did not render a password field"; docker logs bcm-smoke; exit 1; }
           docker exec bcm-smoke /app/server healthcheck || { echo "::error::the built-in healthcheck failed"; docker logs bcm-smoke; exit 1; }
           test "$(docker inspect -f '{{.Config.User}}' bcm-smoke)" = "65532:65532"

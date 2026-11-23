@@ -39,6 +39,9 @@ func (c *Config) Resolve() error {
 		return errors.New("refusing to start: production with insecure cookies; set SECURE_COOKIES=true (behind a TLS-terminating proxy), " +
 			"or ALLOW_INSECURE_COOKIES=true to accept session cookies over plain http (docs/operations.md, TLS and cookies)")
 	}
+	if c.StyleGuide && c.Production() {
+		return errors.New("refusing to start: STYLEGUIDE serves the public /styleguide page and exists for development; it is off in production (APP_ENV=development)")
+	}
 	if c.E2EDice && c.Production() {
 		return errors.New("refusing to start: E2E_DICE scripts the server's dice and exists only for the end-to-end tests; it is off in production (APP_ENV=development)")
 	}

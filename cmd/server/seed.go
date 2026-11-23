@@ -13,7 +13,7 @@ import (
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
 
-const seedUsage = `usage: server seed [--world] [--password <password>]
+const seedUsage = `usage: server seed [--world] [--password <password>] [--force]
 
 Fills a local development database with demo data: four accounts, a campaign with a company each, an ended match (its
 aftermath waived by the organiser) and an open one. Safe to run twice: it does nothing when the demo campaign exists.
@@ -39,10 +39,14 @@ var demoUsers = []struct {
 func runSeed(args []string) error {
 	fs := flag.NewFlagSet("seed", flag.ContinueOnError)
 	password := fs.String("password", "demo-password", "password of every demo account (at least 10 characters)")
+	force := fs.Bool("force", false, "seed even when APP_ENV=production (the demo accounts have a published password)")
 	world := fs.Bool("world", false, "load the rich demo world (many campaigns in every state) instead of the minimal demo")
 	if err := fs.Parse(args); err != nil {
 		//lint:ignore ST1005 the usage text is printed to the terminal as is, not wrapped into a longer message
 		return errors.New(seedUsage)
+	}
+	if os.Getenv("APP_ENV") == "production" && !*force {
+		return errors.New("refusing to seed: APP_ENV=production, and the demo accounts have a published password; seed only a development database (--force to override, at your own risk)")
 	}
 	ctx := context.Background()
 	store, databaseURL, err := openStore(ctx)
