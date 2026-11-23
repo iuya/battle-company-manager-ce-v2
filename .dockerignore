@@ -12,3 +12,7 @@ compose*.yaml
 .env.*
 docs
 *.md
+.private
+.claude
+tests/e2e/node_modules
+tests/e2e/out
