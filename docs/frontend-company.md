@@ -106,11 +106,11 @@ A card, top to bottom:
   row; a creature (types only, all of them icon types) has none. Tap targets: the chips get the invisible 44 px coarse-pointer area of the corner
   tab. `/styleguide` shows the states.
 - **Who a rule works against** (spec [`unit-keywords.md`](unit-keywords.md) "Rule targets"): the rule chips of the card (the unit's own, the path's) carry
-  `UnitRule.Works`, filled by core from `data.ruleTargets`. The tooltip text is `UnitRule.TipText()`: the description and a second paragraph
+  `UnitRule.Works`, filled by core from the `target` of each `rules[]` entry (`LeanRuleTargets`). The tooltip text is `UnitRule.TipText()`: the description and a second paragraph
   "Works against: enemy models with the Orc keyword." ("Works for: ..." for friendly models, Fury (X)); the same line is in `data-tip-works`, which
   `concepts.js` adds under the text of the helper popup (`.concept-works`, an accent-soft box; the popup itself is the rule's glossary term and does not
   know the parameter). The expanded card prints the line (`data-works`) under each rule. An own rule and a rule the table does not list have no line; a
-  ruleset without `data.ruleTargets` has plain tooltips. **Nothing is highlighted on the unit's own card** for an enemy rule.
+  ruleset whose rules have no `target` has plain tooltips. **Nothing is highlighted on the unit's own card** for an enemy rule.
 - **Attributes** from the vanilla file's `stats` list (`VanillaBook.Stats/Profile`): Mv FV SV S D A W C I, then M W F for
   heroes that have any, as a datasheet profile (`.statline`, `.statline-hero`, framed in `muted`): the names on a strip above the values. Values the company raised are green, lowered red; hovering shows the full name. The backend
   fills them dynamically; the page just draws what it is given.
@@ -164,7 +164,7 @@ on a key with no look, a name missing from the sprite and a symbol nothing draws
 ## What the cards read from the data
 
 An item's classes, granted rules and missile profile come from the Battle Companies
-file's `data.gearAnnotations` (`BCBook.Annotation`), not from guessing its name. The classes are mount, melee, two_handed,
+file's `gear[]` entries (`BCBook.Annotation`), not from guessing its name. The classes are mount, melee, two_handed,
 spear, lance (a cavalry spear, sorted with the melee weapons), shield, armour, bow, crossbow, throwing, missile (the
 blowpipe: a ranged weapon that counts against no limit), banner, instrument, consumable (scrolls, herbs, brew, cram) and
 other, each with its icon and colour; an item that is several things leads with its first class and shows the others as small
@@ -242,7 +242,7 @@ An item that only lacks influence, a free slot or room under a company limit (bo
 
 ## Armour upgrades
 
-Armour upgrades (`core/armour.go`, `data.wargear.armourUpgrade`): the shop adds one offer per armour stage above the first
+Armour upgrades (`core/armour.go`, `armourUpgrade`): the shop adds one offer per armour stage above the first
 (`GearOffer.ArmourStage` > 0: "Armour", "Heavy Armour"; 1 influence or Gold, rating per stage: 1 until a hero's Attacks + Wounds reach 3, then 5, and no extra rating for a stage that its profile or its Options already have, BC "Calculate Rating"; Gold price: the armoury's first value, the same for every unit). Buying
 one through `BuyEquipment` with the stage's name replaces the armour the unit wears (the old one is dropped) with the next stage;
 stages are never skipped. A warrior (a Beast that is still a warrior included) needs the stage as an option of its profile; a hero only the stages that units
@@ -378,8 +378,8 @@ cards of My Company have tooltips saying what they are for and where they come f
 
 ## Creatures and wanderers
 
-The Armory tab lists **creatures** (for the leader and the sergeants, one each, at most 3 per company; `data.creatures`) and
-**wanderers** (mercenary heroes, one at a time; `data.wanderers`) below the gear. A creature is not a unit: it takes no
+The Armory tab lists **creatures** (for the leader and the sergeants, one each, at most 3 per company; `creatures`, and the `gear` entries of kind `creature`) and
+**wanderers** (mercenary heroes, one at a time; `wanderers`, and the `gear` entries of kind `wanderer`) below the gear. A creature is not a unit: it takes no
 roster slot, equipment slot or wargear limit and rolls no injuries, but it counts for its points in the rating. The owner's
 card shows a creature chip (tooltip with its stat block) and a small card appears under the units. The **Baggage Pony**
 gives the company a pack (`companyFeature.carryGear`): "Open the pack" lets any member store, take out or swap gear for
@@ -390,8 +390,8 @@ that cannot be hired now (the company is full, not enough influence) stay listed
 button described by it); only the ones that are not possible in the company (the rules give no officer a creature; the company could not
 hire the wanderer even with an empty roster) are hidden by the Armory's switch.
 
-Item tooltips read the Battle Companies file's `gearAnnotations[].definition`; a mount's tooltip also has its stat block
-(`gearAnnotations[].profile`, the vanilla mount entry).
+Item tooltips read the Battle Companies file's `gear[].definition`; a mount's tooltip also has its stat block
+(`gear[].mount`, the vanilla mount entry, or `gear[].profile`).
 
 ## Company pages and the aftermath
 

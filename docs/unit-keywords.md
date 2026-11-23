@@ -232,18 +232,16 @@ Instead, there are three mechanisms.
 
 ### 1. Tooltip wording
 
-`data.ruleTargets` of the Battle Companies file classifies each rule by direction:
+The `rules[]` of the Battle Companies file classify each rule by direction, in its `target` (`appliesTo`):
 
 - `enemy-keyword`, `enemy-any` or `friendly-keyword`;
-- a rule that is not listed is `own`.
+- a rule with no `target` is `own`.
 
-Each entry has a text template (`target`; `{X}` stands for the keywords).
-The table has two parts (see [definitions.md](definitions.md)):
+A `target` has a text template (`text`; `{X}` stands for the keywords) and, for a keyword rule, the `keywords` its text names, `match` (`any` or `all`) and the `bearerKeywords` the bearer must have.
+A rule written with brackets (`Hatred (X)`, `Ancient Enemies (X)`, `Terror (X)`, `Fury (X)`) has `parameter`, and its `bareTarget` says who the rule works on when it is written without the bracket (Terror: all enemy models).
+See [Rule](customizing-rulesets-reference.md#rule) and [Target](customizing-rulesets-reference.md#target).
 
-- `patterns`: families written with brackets, matched on the base name (`Hatred (X)`, `Ancient Enemies (X)`, `Terror (X)`, `Fury (X)`).
-- `names`: single rules, with the `keywords` their text names, `keywordMatch` (any or all) and the `bearerKeywords` the bearer must have.
-
-Core reads the table (`BCBook.RuleTargets()`, `core.RuleTargets.Describe`).
+Core reads them (`LeanRuleTargets`, `BCBook.RuleTargets()`, `core.RuleTargets.Describe`).
 `buildDetail` then sets these fields:
 
 - `UnitRule.Works`: for example "enemy models with the Orc keyword".

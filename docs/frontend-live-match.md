@@ -61,7 +61,7 @@ The Field cards, the compact cards and the rows of "Wounded a unit" of an enemy 
 - `liveFor` computes it (`enemyMatches`: `core.RuleMatches` over the Field units of the viewer's side and of the company on the page, each read through `Live` and `CompanyDetail`).
 - The refresh of `#live-zones` redraws the markers, so a unit that retreats or falls loses its marker.
 - A viewer with no company in the match, and the viewer's own side, get none.
-- Without `data.ruleTargets` no rule has targets and nothing is marked.
+- Without a `target` on its `rules[]` entries no rule has targets and nothing is marked.
 - Read errors of the extra companies drop the markers, never the page.
 
 ## Trackers

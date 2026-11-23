@@ -158,7 +158,7 @@ interface all take the acting `core.User` and return `ErrNotFound` for an unknow
 starting positions, how the game ends, special rules, roles) and `Prizes` (rewards that follow from the result: Rendezvous, Vantage Point, Survival of the Fittest; shown, not ticked).
 
 A `ScenarioObjective` is one tick per company on the End match sheet: a reward condition of the rules file that the players tick
-(`data.scenarioDetails[].rewards[]` with a `companyFlag` condition). Those are Scavenge the Battlefield (free equipment), Baggage Train
+(`scenarios[].rewards[]` with a `companyFlag` condition). Those are Scavenge the Battlefield (free equipment), Baggage Train
 (1 Influence) and Relic of Ages Past. Rewards that follow from the result itself (`victory`, `leaderNotRemoved`) are not ticks; they belong to the aftermath. Objective fields are posted as
 `tick-<company id>-<key>`.
 
@@ -249,7 +249,7 @@ The lower rated company may buy bonuses **after the Scenario Table roll and befo
 - **Different ones**: up to five **different** kits (Healer's, Explorer's, Scholar's, Hunter's, Raider's), each a 30 Rating purchase, and, with `repeatable` on the Wanderer, as many **different** temporary Wanderers as the file lists, each 45. A campaign keeps the file it was created with: on an older file every bonus is bought once and one Wanderer joins.
 - **Every bonus that fits has to be taken**: the decision cannot be confirmed while `ATOSelection.StillAffordable` lists a bonus, that is, while a purchase still costs no more than what is left. This is a rule of this app: the rules text says the company "may select" bonuses. It binds the organiser and administrators too and is enforced in `SaveAgainstTheOdds`. The choices are not unique: with a gap of 40, Influence and Reroll leave 10 and Experience leaves 10, and both complete it. Outside a practice match Influence is always there to spend on, so neither a Wanderer nor Ambush! is ever forced.
 - **Tool Kit items** are assigned to roster models that take part (Warriors or Heroes, not the temporary Wanderer) before setup; capacity and alignment rules are ignored, Hero-only still applies, no extra Rating for the models, and the items are gone after the aftermath. An item that goes on a weapon (Envenom Weapon) names the weapon (`Detail`, 0-40 characters). Unassigned items are allowed while editing and are simply not in play.
-- **Temporary Wanderers**: each one of `data.wanderers.items`, each one different, priced at the flat 45, never together with a permanent Wanderer on the roster; not on the roster, not against the 15 model cap, counts as a model for the Break Point, no injury roll or experience, and the Top Dog / Underdog comparison ignores it.
+- **Temporary Wanderers**: each one of the `gear` entries of kind `wanderer`, each one different, priced at the flat 45, never together with a permanent Wanderer on the roster; not on the roster, not against the 15 model cap, counts as a model for the Break Point, no injury roll or experience, and the Top Dog / Underdog comparison ignores it.
 - **Ambush!**: the lower company **chooses the scenario**, any of the 18, replacing the rolled one. Removing the bonus restores the scenario that was set before, as long as the match still shows the scenario Ambush! chose.
 - **The game waits**: while the decision is pending (`ATOStatus.Pending`), `LiveService.Apply` refuses every entry and End match and Confirm are refused, End match disabled, with "Waiting for Hador to choose Against the Odds." (`Matches.ATOBlocks`, `matchView.EndReason`). The organiser's override (`OverrideEnd`) still works. The live banner of a company page says what the match waits for; the owner of the lower rated company gets the line "Choose Against the Odds for Match N" under Your turn.
 - **Nothing to wait for**: nobody is eligible (equal ratings, not two sides of one company), the decision is confirmed (`Match.ATODecided`, column `matches.ato_decided`), the game has started, or the gap pays for no bonus the company can take (`atoPayable`: a gap under the cheapest bonus; in a practice match the reward bonuses do not count; a company with a Wanderer cannot take another). A game that started never stops, whatever happens to the ratings.
@@ -268,7 +268,7 @@ It sits after the Scenario card and is visible to every campaign player (the opp
 5. **Confirmed or locked**: the summary line ("Hador took: Influence x3; Reroll; Wanderer (...).", "Hador took no bonus.") and, for an editor before the game starts, **Change**.
 6. **A gap that pays for nothing**: one line, "A gap of 5 pays for no bonus: there is nothing to choose."
 
-Code: `LeanATO` reads `campaign.againstTheOdds` and `data.wanderers.items` (a kit key is made from its name, "Healer's Kit" is `healer`; an item is Hero-only when `data.equipment.items[].restrictions` says `hero`).
+Code: `LeanATO` reads `campaign.againstTheOdds` and the `gear` entries of kind `wanderer` (a kit key is made from its name, "Healer's Kit" is `healer`; an item is Hero-only when the `who` of the `gear` entry of kind `equipment` says `hero`).
 
 ```go
 type ATOSelection struct {
