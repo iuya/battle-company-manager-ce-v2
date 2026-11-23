@@ -128,6 +128,7 @@ cosign verify \
 
 It prints the verified claims on success and exits non-zero otherwise.
 
+`make proxy-test` (`tests/ci/proxy.test.sh`, a job of the `e2e` workflow) starts the shipped Caddyfile and compose file with an image built from the checkout and checks what only the real proxy shows: the HTTP to HTTPS redirect, the headers and HSTS, the 404 of the probes, the login throttle against a forged `X-Forwarded-For`, the Secure session cookie, and that no link secret, cookie or `Authorization` value reaches a log.
 `make deploy-test` (`tests/ci/deploy.test.sh`) runs the updater against stub `docker`, `curl` and `cosign` for the on, off, bad-signature and missing-cosign paths, and checks the workflow's permissions.
 
 

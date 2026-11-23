@@ -58,15 +58,24 @@ jobs:
             tests/e2e/out/*.txt
             tests/e2e/out/server.log
 
+  # The production stack as the internet sees it (tests/ci/proxy.test.sh): the shipped Caddyfile and compose file with an image built from this checkout.
+  proxy:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Caddy, app and PostgreSQL
+        run: make proxy-test
+
   e2e:
-    needs: [plan, browser]
+    needs: [plan, browser, proxy]
     if: always() # a skipped or failed group must fail this job, not skip it (a skipped required check counts as passed)
     runs-on: ubuntu-26.04
     timeout-minutes: 5
     steps:
       - name: Every group passed
         env:
-          RESULTS: ${{ needs.plan.result }} ${{ needs.browser.result }}
+          RESULTS: ${{ needs.plan.result }} ${{ needs.browser.result }} ${{ needs.proxy.result }}
         run: |
-          echo "plan, browser: $RESULTS"
-          test "$RESULTS" = "success success"
+          echo "plan, browser, proxy: $RESULTS"
+          test "$RESULTS" = "success success success"

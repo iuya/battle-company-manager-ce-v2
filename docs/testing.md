@@ -25,6 +25,7 @@ Contents:
 | `make check-ruleset FILE=…` | Checks a lean rules file like the upload does ([definitions.md](definitions.md#upload-validation)) |
 | `make fuzz [FUZZTIME=1m]` | Explores `FuzzParseDice` and `FuzzDecode` (their seed corpus already runs in `make test`) |
 | `make e2e` | Browser smoke tests (this page); `make e2e-groups` runs them group by group, `make e2e-check-groups` (part of `make test`) checks the grouping and the dice loops of the flows |
+| `make proxy-test` | The shipped Caddy, app and PostgreSQL (`deploy/compose.prod.yaml`, `deploy/Caddyfile`) on local ports with an image built from the checkout, driven with `curl` (`tests/ci/proxy.test.sh`; needs Docker; `APP_IMAGE=<image>` skips the build). Not part of `make test`; the `proxy` job of the `e2e` workflow runs it |
 | `make perf` | Page-load measurements at 0/100/300 ms of latency, not a test: see [performance.md](performance.md) |
 
 ## Tabletop Simulator helper (Lua tests)
@@ -315,7 +316,8 @@ The groups are balanced by the step time of the flows (measured locally, in seco
 1. A `plan` job checks the grouping and reads the group names from `groups.json`.
 2. One `browser (<group>)` job per group runs in parallel (`make e2e-enforce GROUP=<group>`, `fail-fast: false` so every group reports).
    Each job has its own compose PostgreSQL and seeds its own template, which takes about 2.5 minutes.
-3. The final `e2e` job (`needs` all of them, `if: always()`) fails unless every group passed.
+3. A `proxy` job runs `make proxy-test`: the production stack behind the shipped Caddy, with an image built from the checkout (about 3 minutes).
+4. The final `e2e` job (`needs` all of them, `if: always()`) fails unless every group and the proxy test passed.
 
 Require the check named `e2e` in branch protection. `release-image.yml` calls the workflow and its image jobs wait for it.
 
