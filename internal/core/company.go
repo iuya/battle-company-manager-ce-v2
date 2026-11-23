@@ -232,7 +232,7 @@ type Equipment struct {
 	Profile     bool        // part of the unit's vanilla profile (a Warrior of Minas Tirith's armour), not an option or a purchase
 	Rating      int         // what the item adds to the unit's points (0 for profile items, which are already in them)
 	Drop        string      // why the unit cannot drop it (see DropReason); empty when it can
-	GrantsSlots SlotCounts  // the equipment slots the item adds (data.gearAnnotations grantsSlots: the Backpack)
+	GrantsSlots SlotCounts  // the equipment slots the item adds (gear[].grantsSlots: the Backpack)
 	Size        string      // "small" or "large" for equipment that takes a slot; empty for wargear, which takes none
 	Stats       string      // what the item does in numbers, e.g. `24" · S2` for a bow; empty for most items
 	Description string      // the item's rules, if it has any (shown on hover)
@@ -318,7 +318,7 @@ type UnitRule struct {
 	Mount       string // for rules granted to the mount (Pony: Timid), the mount's name; empty for the bearer's own
 	Label       string // the name to show when it differs from Name (the key): see Shown
 	// Works is who the rule works against, for its tooltip ("enemy models with the Orc keyword"); Against holds, for a rule that works against
-	// enemy models with a keyword, the alternatives of keywords (one bracket each). Both come from data.ruleTargets and stay empty without it.
+	// enemy models with a keyword, the alternatives of keywords (one bracket each). Both come from rules[].target and stay empty without it.
 	Works   string
 	Against [][]string
 	Needs   []string // the rule only works whilst the bearer has one of these keywords (Slay their Horses!: Cavalry)
@@ -505,7 +505,7 @@ func (u CompanyUnit) Title() string {
 }
 
 // Slots is how many of a unit's equipment slots are used. The slots a model has and the ones an item adds come from the
-// rules file (campaign.company.equipmentSlots, data.gearAnnotations grantsSlots).
+// rules file (campaign.company.equipmentSlots, gear[].grantsSlots).
 type Slots struct {
 	LargeUsed, LargeMax int
 	SmallUsed, SmallMax int

@@ -241,7 +241,7 @@
           "type": "string"
         },
         "from": {
-          "description": "Where the choice comes from (data.wanderers.items, scenarios).",
+          "description": "Where the choice comes from (the gear entries of kind wanderer, scenarios).",
           "minLength": 1,
           "type": "string"
         },

@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// Progression is the level-up system of Battle Companies, read from the rules file (campaign.progression, data.paths,
+// Progression is the level-up system of Battle Companies, read from the rules file (campaign.progression, paths,
 // campaign.characteristicLimits). A unit that earns campaign.progression.threshold experience rolls once: a warrior on a D6 (promotion, or a hero in the
 // making), a hero twice on 2D6 on its path, choosing one of the two results.
 

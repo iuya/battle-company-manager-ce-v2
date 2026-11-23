@@ -255,7 +255,7 @@ func TestTTSNamesV2SizeLimit(t *testing.T) {
 	}
 }
 
-// TestTTSNamesWithoutAuraData: a ruleset without data.auras writes version 1 even when the selection asks for rings.
+// TestTTSNamesWithoutAuraData: a ruleset without auras writes version 1 even when the selection asks for rings.
 func TestTTSNamesWithoutAuraData(t *testing.T) {
 	rs := shippedRules(t)
 	withoutAuras(t, rs)

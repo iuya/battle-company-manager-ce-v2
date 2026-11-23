@@ -255,7 +255,7 @@ settings" when none is); a fieldset **Which rules** with a switch per group that
 on), Rules that need an event (`aconditional`, on), Spells in effect (`acast`), Targeting ranges (`atarget`), Large rings over 12 inches (`alarge`) and Optional rings
 (`aoptional`), all off, each with "adds N rings" (or "N rings" when on). A group with no ring in the company has no switch. Under the form: the totals line
 (`#tts-auras-total`: "16 rings on 7 figures, 1 left out (limit 6 per figure, 150 in all)") and the legend (`dl[data-tts-legend]`: kind, colour name, the sentence of
-`data.auras.kinds`, "thick line" for the enemy kind). With the master switch off only the switch is drawn; a company with no aura at all shows "This company has no aura ranges."
+`auras.kinds`, "thick line" for the enemy kind). With the master switch off only the switch is drawn; a company with no aura at all shows "This company has no aura ranges."
 instead. Query parameters of the dialog route: `auras=1|0`, `akinds=banner,command,...` (the kinds that are on; absent: all), `adeclared`, `aconditional`, `acast`, `atarget`,
 `alarge`, `aoptional` (`1|0`); `ttsAuraSelection` builds the `core.AuraSelection`, which goes to `ttsExporter.TTSAuras` (counts) and to `TTSNamesOptions.Auras` (the payload).
 `tts.js` remembers all of it in `bcm-tts` (the kinds the player switched off as `akoff`, so a kind the next company lacks keeps its setting, and sends `akinds` only when
@@ -373,7 +373,7 @@ Otherwise the payload is the version 1 shape byte for byte (`TestTTSNamesV1Stays
 The specification and classification are in [aura-ranges.md](aura-ranges.md).
 
 - `TTSNamesOptions.Auras` is a `core.AuraSelection`.
-  The zero value writes none, and `DefaultAuraSelection()` reads the defaults of `data.auras`.
+  The zero value writes none, and `DefaultAuraSelection()` reads the defaults of `auras.groups`.
 - Per figure: `a:[{"r":3,"k":"banner","w":"a","n":"Banner"}]`.
   The keys are radius in inches, kind id, when (`a` always, `d` declared, `x` conditional, `c` cast, `t` target) and labels joined.
 - There is no base size; the helper measures the figure's bounds.

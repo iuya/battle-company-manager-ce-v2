@@ -2,7 +2,7 @@ package core
 
 import ()
 
-// TTSModels is data.ttsModels of the Battle Companies file: the fixed mappings from Battle Companies to the model names of the
+// TTSModels is the `tts` of the gear entries and units of the Battle Companies file: the fixed mappings from Battle Companies to the model names of the
 // Tabletop Simulator MESBG FTC mod (docs/tabletop-simulator.md). Short names only; the mod's catalogue is never stored.
 type TTSModels struct {
 	StandIns []TTSStandIn // wanderers and creatures, which the mod has no figure for

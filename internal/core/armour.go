@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// ArmourUpgrade is the Battle Companies rule "Upgrade Armour by one stage" (data.wargear.armourUpgrade): stages of armour, each
+// ArmourUpgrade is the Battle Companies rule "Upgrade Armour by one stage" (armourUpgrade): stages of armour, each
 // upgrade costs influence (or Gold) and adds rating. Buying one replaces the armour the model wears with the next stage.
 type ArmourUpgrade struct {
 	Stages [][]string // the names of each stage, lowest first (None and Light, Armour, Heavy and Dwarf armour)

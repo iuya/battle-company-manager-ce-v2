@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// An item is a base item plus modifiers (data.gearAnnotations.modifiers): the tooltip explains the modifier, the identity stays exact.
+// An item is a base item plus modifiers (gear[].modifiers): the tooltip explains the modifier, the identity stays exact.
 func TestItemModifiersExplainedInTheTooltip(t *testing.T) {
 	rs := shippedRules(t)
 	spear, ok := rs.BC.Annotation("Elven spear")

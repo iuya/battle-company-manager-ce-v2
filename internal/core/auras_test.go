@@ -10,9 +10,9 @@ import (
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core/lean"
 )
 
-// The auras against the shipped rules (docs/aura-ranges.md, data.auras).
+// The auras against the shipped rules (docs/aura-ranges.md, auras).
 
-// withoutAuras empties data.auras of the shared shipped rules for the rest of the test.
+// withoutAuras empties auras of the shared shipped rules for the rest of the test.
 func withoutAuras(t *testing.T, rs *RuleSet) {
 	t.Helper()
 	saved := rs.BC.auras
@@ -202,7 +202,7 @@ func TestUnitAurasLostStandFastAndWanderers(t *testing.T) {
 	wantAuras(t, "a wanderer", rs.UnitAuras(u))
 }
 
-// TestUnitAurasNoData: a ruleset without data.auras has no rings and no error.
+// TestUnitAurasNoData: a ruleset without auras has no rings and no error.
 func TestUnitAurasNoData(t *testing.T) {
 	if tab := LeanAuraTable(&lean.Document{}); !tab.Empty() {
 		t.Fatalf("empty document: %v", tab)

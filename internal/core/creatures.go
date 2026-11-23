@@ -5,10 +5,10 @@ import (
 	"strings"
 )
 
-// CreatureRules are the Battle Companies rules for creatures (data.creatures.rules): animals bought for the officers.
+// CreatureRules are the Battle Companies rules for creatures (creatures.rules): animals bought for the officers.
 type CreatureRules struct {
 	AttachTo   []string // the roles that may have one: leader, sergeant
-	MaxPerHero int      // data.creatures.rules.maxPerHero; the company-wide count follows from one creature per officer
+	MaxPerHero int      // creatures.rules.maxPerHero; the company-wide count follows from one creature per officer
 }
 
 // CarryFeature is what the Baggage Pony gives the whole company: a pack the members can store gear in and take it from.
@@ -33,7 +33,7 @@ type CreatureOffer struct {
 	CourageOfOwner bool // its Courage is its owner's (a hunting dog)
 }
 
-// WandererRules are the Battle Companies rules for wanderers (data.wanderers.rules).
+// WandererRules are the Battle Companies rules for wanderers (wanderers.rules).
 type WandererRules struct {
 	MaxAtOnce int
 }
@@ -147,7 +147,7 @@ func followerStats(raw map[string]json.RawMessage, vanilla *VanillaBook) map[str
 	return out
 }
 
-// creatureFrom reads a creature of data.creatures.items (or of a lean gear entry written in that shape).
+// creatureFrom reads a creature of the gear entries of kind creature (or of a lean gear entry written in that shape).
 func creatureFrom(raw map[string]json.RawMessage, vanilla *VanillaBook) CreatureOffer {
 	c := CreatureOffer{Name: rawStr(raw, "name"), Cost: rawInt(raw, "influence"), Gold: rawInt(raw, "gold"), Points: rawInt(raw, "points"), Stats: followerStats(raw, vanilla),
 		Rules: rawStrings(raw, "specialRules"), Notes: rawStrings(raw, "notes")}
@@ -175,7 +175,7 @@ func creatureFrom(raw map[string]json.RawMessage, vanilla *VanillaBook) Creature
 	return c
 }
 
-// wandererFrom reads a wanderer of data.wanderers.items (or of a lean gear entry written in that shape).
+// wandererFrom reads a wanderer of the gear entries of kind wanderer (or of a lean gear entry written in that shape).
 func wandererFrom(raw map[string]json.RawMessage, vanilla *VanillaBook) WandererOffer {
 	return WandererOffer{Name: rawStr(raw, "name"), Cost: rawInt(raw, "influence"), Gold: rawInt(raw, "gold"), Points: rawInt(raw, "points"), UnitTypes: rawStrings(raw, "unitType"),
 		Stats: followerStats(raw, vanilla), HeroicActions: rawStrings(raw, "heroicActions"), Rules: rawStrings(raw, "specialRules"), Wargear: rawStrings(raw, "wargear"), Note: rawStr(raw, "keywordNote")}

@@ -8,7 +8,7 @@ import (
 )
 
 // Who a rule works against (docs/unit-keywords.md "Rule targets"): the Battle Companies file classifies every rule whose parameter is a
-// keyword (data.ruleTargets). Hatred (Orc) and Ancient Enemies (Elf) work against ENEMY models with that keyword, Terror against every enemy
+// keyword (rules[].target). Hatred (Orc) and Ancient Enemies (Elf) work against ENEMY models with that keyword, Terror against every enemy
 // model, Fury (X) for friendly models, some rules only for the bearer. The tooltip of such a rule says so ("Works against"), and in a live
 // match an enemy unit that a rule of yours names gets a marker. A rule set without the table (a custom ruleset) has no targets: plain
 // tooltips and no markers.
@@ -23,7 +23,7 @@ const (
 	TargetOwn             RuleDirection = "own"              // the bearer only
 )
 
-// RuleTarget is one row of data.ruleTargets: a family of rules written with a keyword in brackets (Hatred (X)), or one rule by name.
+// RuleTarget is one row of rules[].target: a family of rules written with a keyword in brackets (Hatred (X)), or one rule by name.
 type RuleTarget struct {
 	Rule      string // "Hatred (X)" for a family, the rule's name otherwise
 	Base      string // a family's name without its parameter ("Hatred"); empty for a rule by name
@@ -53,7 +53,7 @@ func NewRuleTargets(rows []RuleTarget) RuleTargets {
 	return t
 }
 
-// Empty says there is no table (a ruleset without data.ruleTargets).
+// Empty says there is no table (a ruleset without rules[].target).
 func (t RuleTargets) Empty() bool { return len(t.names)+len(t.patterns) == 0 }
 
 // Rows lists the table, families first, each by name.

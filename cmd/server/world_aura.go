@@ -8,7 +8,7 @@ import (
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
 
-// The Aura parade: companies that carry every aura reachable from the data (docs/aura-ranges.md, data.auras), so that the rings of the
+// The Aura parade: companies that carry every aura reachable from the data (docs/aura-ranges.md, auras), so that the rings of the
 // Tabletop Simulator export can be smoke tested with one click on each company. docs/demo-world.md says which company covers which
 // aura and which auras no company can reach.
 
@@ -103,14 +103,14 @@ func (w *world) auraParade() {
 	w.auraCoverage()
 }
 
-// auraUnreachable are the entries of data.auras no company of the app can carry, with the reason (docs/demo-world.md prints them).
+// auraUnreachable are the entries of auras no company of the app can carry, with the reason (docs/demo-world.md prints them).
 var auraUnreachable = map[string]string{
 	"keen-sight-12-2":   "the plain Keen Sight rule has a ring of its own in the file; the units of the companies carry the Falcon's rule (keen-sight-12)",
 	"lead-by-example-6": "only Buhrdur (a named character no company has) carries the vanilla Lead by Example ring; the Path of Their Own Making has a rule of its own, Lead by Example (Their Own Making), with no ring",
-	"banner-3":          "a plain Banner is not sold: the Battle Companies equipment table replaces it with the Company Standard (data.optionSales notSold)",
+	"banner-3":          "a plain Banner is not sold: the Battle Companies equipment table replaces it with the Company Standard (vanilla.options.notSold)",
 }
 
-// auraCoverage says (as a gap) which entry of data.auras no company of the parade carries and the list above does not explain.
+// auraCoverage says (as a gap) which entry of auras no company of the parade carries and the list above does not explain.
 func (w *world) auraCoverage() {
 	for _, e := range w.auraRules().BC.Auras().Entries {
 		cos := w.auraCovered[e.ID]
@@ -287,7 +287,7 @@ func (w *world) auraRules() *core.RuleSet {
 	return w.rules
 }
 
-// auraInventory prints the auras of every unit and creature of the company and remembers the entries of data.auras they cover.
+// auraInventory prints the auras of every unit and creature of the company and remembers the entries of auras they cover.
 func (w *world) auraInventory(co *wco) {
 	rs := w.auraRules()
 	d := w.detail(co)

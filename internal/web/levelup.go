@@ -35,7 +35,7 @@ type levelPanel struct {
 	// CloseAfter is how many milliseconds after the reveal the window closes by itself: a warrior's no change with no roll left.
 	CloseAfter int
 	// Spec is the dice of this unit's roll (a warrior's, or the hero's path chart) and Pairs how many results a hero rolls: the form,
-	// the dice tray and the heading are sized by them (campaign.progression, data.paths[].dice).
+	// the dice tray and the heading are sized by them (campaign.progression, paths[].dice).
 	Spec  core.DiceSpec
 	Pairs int
 }

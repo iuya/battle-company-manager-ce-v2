@@ -111,7 +111,7 @@ Styles: `.path-carousel`, `.path-strip`, `.path-row`, `.path-row-icon`, `.path-t
 ## Level-up
 
 The "Level Up ready!" banner of a card opens the level-up window (`level_panel`). The rules are read from the Battle
-Companies file (`core.ParseProgression`: `campaign.progression`, `data.paths`, `campaign.characteristicLimits`, each
+Companies file (`core.ParseProgression`: `campaign.progression`, `paths`, `campaign.characteristicLimits`, each
 company's `advancements`); a unit earns a roll every 5 XP and several can wait.
 
 - A **warrior** rolls its dice (`campaign.progression.warrior.roll`, d6 in the shipped file):
@@ -126,7 +126,7 @@ company's `advancements`); a unit earns a roll every 5 XP and several can wait.
 - "Roll for me" is animated (a warrior's dice; a hero's dice run in one lane per result, named and totalled once they stop); "I rolled" takes the player's own dice. A roll
   waits for its choice if the window is closed (`campaigns.LevelUpState`).
 - **Magical powers** (Path of the Sorcerer only): the rows offer "a new power or improve a casting value".
-  - The list is the Sorcerer's spell list (`data.magicalPowers.items[learnable]`, each with range and casting value) minus the powers the hero knows.
+  - The list is the Sorcerer's spell list (`magic.powers`, each with range and casting value) minus the powers the hero knows.
   - An improvement lowers a power's casting value by 1 (5+ becomes 4+), at most twice per power and never below 2+ (`castingRule`).
   - A new Sorcerer picks its first power in the path window (a unit whose hidden path starts with one, in the level-up window: `Stage` startingPower).
   - Fury is learned for a species (one choice per "Fury (Species)").

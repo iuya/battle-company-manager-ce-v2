@@ -143,7 +143,7 @@ type RewardCondition struct {
 	Kind, Key, Label string // victory | companyFlag | modelFlag | leaderNotRemoved
 }
 
-// RewardRule is a reward of a scenario (data.scenarioDetails[].rewards[]).
+// RewardRule is a reward of a scenario (scenarios[].rewards[]).
 type RewardRule struct {
 	Effect, Name, Text, Who string
 	Condition               RewardCondition

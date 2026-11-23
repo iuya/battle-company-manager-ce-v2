@@ -146,7 +146,7 @@ Every company also shows Stand Fast, With Me! and Loose on its heroes; the Marks
 **Auras no company can reach** (`auraUnreachable`):
 
 - **Banner (3")**, the plain item: a Battle Company cannot own it. The Battle Companies equipment table sells the Company Standard instead and the vanilla options "Banner", "War horn" and "War drum"
-  are `notSold` (`data.optionSales`). The Company Standard (same 3" ring), the Company Horn and the Company Drum (the same names as the entries `horn-*` and `drum-12`) are carried above. The entry would show
+  are `notSold` (`vanilla.options.notSold`). The Company Standard (same 3" ring), the Company Horn and the Company Drum (the same names as the entries `horn-*` and `drum-12`) are carried above. The entry would show
   up in a custom ruleset that sells a banner.
 - The rules the data lists as `receiver-side`, `centred-elsewhere`, `weapon-range`... (`excluded` in `tools/data/aura_audit.json`) and the vanilla rules of characters no company can field (`unreachable`) are not entries.
 - Everything else of the entries is carried by at least one company above; the ring of `Lead by Example` is Buhrdur's alone (no company has him), so it is listed among the unreachable entries; the homebrew path's `Lead by Example (Their Own Making)` has no ring and needs the campaign setting `CustomOnTheirOwnPath`, which this campaign switches on.
