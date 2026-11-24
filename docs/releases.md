@@ -14,7 +14,7 @@ For the maintainer who cuts a release and for anyone who runs the published imag
 
 Every release tag builds the image in CI and publishes it to the GitHub Container Registry: `ghcr.io/iuya/battle-company-manager-ce-v2`.
 It is built from the same `Dockerfile` as the local build (distroless, non-root uid 65532, no secrets baked in), for `linux/amd64` and `linux/arm64`.
-The binary knows its release: the workflow passes the tag as the `VERSION` build argument, `server version` prints it and the footer of every page shows it, linked to the release page.
+The binary knows its release: the workflow passes the tag as the `VERSION` build argument and the commit as `COMMIT`; `server version` prints the tag, the footer of every page shows it, linked to the release page, and `GET /version` (public) answers both as JSON.
 The image carries the OCI labels `source`, `version`, `revision` (the commit), `licenses`, `title` and `description`.
 
 When the image is published, the workflow also creates the **GitHub Release** of the tag.
@@ -54,7 +54,7 @@ The jobs, in order:
 
 1. `e2e`: the browser tests of `e2e.yml`, called as a reusable workflow (four parallel groups and a final `e2e` job). Any failing group stops the release.
 2. `build`: a matrix of two jobs on native runners (no QEMU), `linux/amd64` on `ubuntu-26.04` and `linux/arm64` on `ubuntu-26.04-arm` (free for public repositories).
-   Each job builds its image into its runner and smoke-tests it: it starts the image read-only against a PostgreSQL service container and checks `/readyz`, `/healthz`, the login page, the built-in healthcheck and the architecture.
+   Each job builds its image into its runner and smoke-tests it: it starts the image read-only against a PostgreSQL service container and checks `/readyz`, `/healthz`, `/version` (it must say the tag and the commit the image was built from), the login page, the built-in healthcheck and the architecture.
    It then scans the image with Trivy (`aquasecurity/trivy-action`): a fixable vulnerability of severity HIGH or CRITICAL, in the base image or in the Go binary, stops the release before anything is pushed; unfixed ones are reported by a normal scan but do not stop it.
    It also writes the image's software bill of materials (CycloneDX, `sbom-<platform pair>.cdx.json`) and keeps it as an artifact of the run for 90 days; the `release` job checks the two files and attaches them to the GitHub release in the same call that creates it (releases are immutable: nothing can be added to one once it is published). They describe the image that passed the smoke test, built from the same inputs as the one pushed.
    Only then does it push the image by digest (no tag) with the `GITHUB_TOKEN` (permissions: contents read, packages write) and upload the digest as an artifact.
