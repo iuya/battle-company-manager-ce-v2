@@ -60,7 +60,15 @@ Raise it only if a superuser uploads many rules files that campaigns pin; lower 
 
 ## Account links: logs, audit, retention, several instances
 
-- **Logs never hold a link secret.** The request and panic logs write the route (`/register/{token}`, `/recover/{token}`, `/join/{token}`) instead of the path.
+- **Logs never hold a link secret.** The request and panic logs write the route (`/register/{token}`, `/recover/{token}`, `/join/{token}`) instead of the path;
+  a CSP violation report is logged as scheme, host and route, without query or fragment; Caddy's access log cuts the token out of the request line (also the encoded `?next=` of the login redirect), the `Referer` and the `Location`.
+  `make proxy-test` checks all of it against the real Caddy.
+- **What the logs hold, and for how long.** Personal data first:
+  Caddy's access log (JSON, the container's stdout) has the client address, the user agent, the method, the host and the redacted address of every request; cookies and `Authorization` are not logged (Caddy redacts them; `make proxy-test` checks it).
+  The app's request log has the method, the route, the status and the duration: no client address, no email, no query string, no body.
+  An error line carries the error text, which is not filtered, so it can name a value the error came about with.
+  Nothing is shipped elsewhere. Container logs use Docker's `local` driver, rotated by size at 10 MB x 5 files per container (`deploy/compose.prod.yaml`), so what stays is the last 50 MB of each, which is days or weeks for a table-top app; there is no age limit.
+  Treat a copy of a log (a bug report, a backup of `/var/lib/docker`) as holding client addresses.
 - **Audit and retention.** `audit_events` is kept for ever and holds no secret.
   The housekeeping of `Auth.Login` deletes unused revoked or expired account invitations, and ended recovery links, 90 days after they ended.
   Used invitations stay.

@@ -35,6 +35,16 @@ func (s *Server) clearSessionCookie(w http.ResponseWriter) {
 	})
 }
 
+// readRequest says a request cannot change anything the app keeps: a GET, HEAD or OPTIONS, or signing in or out (a read-only account
+// may leave, and a browser that still holds its session may sign in as someone else).
+func readRequest(r *http.Request) bool {
+	switch r.Method {
+	case http.MethodGet, http.MethodHead, http.MethodOptions:
+		return true
+	}
+	return r.Method == http.MethodPost && (r.URL.Path == "/login" || r.URL.Path == "/logout")
+}
+
 // session resolves the session cookie, if any, and makes the user available to the handler. It never rejects the
 // request: pages that need a user are wrapped with protected.
 func (s *Server) session(next http.HandlerFunc) http.HandlerFunc {
@@ -43,6 +53,10 @@ func (s *Server) session(next http.HandlerFunc) http.HandlerFunc {
 			user, renewed, err := s.auth.Authenticate(r.Context(), c.Value)
 			switch {
 			case err == nil:
+				if user.ReadOnly && !readRequest(r) {
+					s.refuse(w, r, http.StatusForbidden, "This account is read-only: it can look at everything and change nothing.")
+					return
+				}
 				r = r.WithContext(context.WithValue(r.Context(), ctxKey{}, &user))
 				if !renewed.IsZero() {
 					s.setSessionCookie(w, c.Value, renewed)

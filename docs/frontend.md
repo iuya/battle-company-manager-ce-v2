@@ -178,7 +178,7 @@ Defined in `tailwind.css` (`@layer components`) on top of the tokens:
 
 `/styleguide` renders every token, a live contrast table, the type scale and all components in the active theme.
 Use it to review any change to the design language.
-It is served only when `STYLEGUIDE=true`, which `make run`, `make dev` and `make demo` set.
+It is served only when `STYLEGUIDE=true`, which `make run`, `make dev` and `make demo` set; the server refuses to start with it in production.
 
 ## Pages and htmx
 

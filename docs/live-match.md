@@ -211,7 +211,7 @@ At End match, and for the aftermath sheet built at its first read, the default `
 A viewer of a company in a running match sees changes within about a second without reloading and cannot modify that company's trackers. One Server-Sent Events stream per match, `GET /campaigns/{id}/matches/{match}/events`, carries
 pointers, not HTML: `event: company-<id>` and `event: match` (a change or an undo), `event: ended` (the page reloads), `id: <seq>`, `data: {"seq": 41}`, a `: ping` every 25 s. The page refetches its own authorised fragment, so rendering stays per
 viewer. On reconnect the server sends one batch for every company and the fetch is idempotent. A write answers its own page directly; the author's tab ignores the event whose seq it already has. If `EventSource` fails or is refused (caps of
-10 streams per user and 50 per match) the live banner polls the company fragment every 10 s and shows the dot grey. The script is only included on pages of a company in an open match. The design is in [architecture.md](architecture.md#live-sync-server-sent-events).
+10 streams per user, 50 per match and 500 in all) the live banner polls the company fragment every 10 s and shows the dot grey. The script is only included on pages of a company in an open match. The design is in [architecture.md](architecture.md#live-sync-server-sent-events).
 
 ## Go contracts
 

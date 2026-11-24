@@ -78,12 +78,17 @@ type adminUserRow struct {
 	Link         *shownLink
 	// Campaign limit card (superusers): the form is open after a refusal, with what was sent.
 	LimitOpen bool
-	LimitErr  string
-	LimitSent string
+	// Read-only card (superusers): the refusal of the last request.
+	ReadOnlyErr string
+	LimitErr    string
+	LimitSent   string
 }
 
 // CanLimit says the card of the campaign limit is the viewer's: superusers, on open accounts.
 func (r adminUserRow) CanLimit() bool { return !r.U.Closed && r.Viewer.IsSuperuser() }
+
+// CanReadOnly says the read-only switch is the viewer's: superusers, on open accounts that are not superusers.
+func (r adminUserRow) CanReadOnly() bool { return r.CanLimit() && r.U.Role != core.RoleSuperuser }
 
 // OpenOrganised is how many unfinished campaigns the account organises.
 func (r adminUserRow) OpenOrganised() (n int) {
@@ -273,6 +278,33 @@ func (s *Server) handleAdminCampaignLimit(w http.ResponseWriter, r *http.Request
 	}
 	if err != nil {
 		row.LimitOpen, row.LimitErr, row.LimitSent = true, reason(err), raw
+		s.render.partial(w, http.StatusUnprocessableEntity, "admin_users", "admin_user_row", row)
+		return
+	}
+	row.Notice = "Saved"
+	s.render.partial(w, http.StatusOK, "admin_users", "admin_user_row", row)
+}
+
+// handleAdminReadOnly saves the read-only switch of an account: an account that may only read (the smoke-test account of a deployment).
+// Superusers only: the service answers 403 for anyone else and refuses a superuser.
+func (s *Server) handleAdminReadOnly(w http.ResponseWriter, r *http.Request) {
+	me := *userFrom(r.Context())
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		s.notFound(w, r)
+		return
+	}
+	err = s.auth.SetReadOnly(r.Context(), me, id, r.PostFormValue("read_only") != "")
+	if errors.Is(err, core.ErrForbidden) || (err != nil && !errors.Is(err, core.ErrRefused)) {
+		s.fail(w, r, err)
+		return
+	}
+	row, ok := s.userRowFor(w, r, me, id)
+	if !ok {
+		return
+	}
+	if err != nil {
+		row.ReadOnlyErr = reason(err)
 		s.render.partial(w, http.StatusUnprocessableEntity, "admin_users", "admin_user_row", row)
 		return
 	}

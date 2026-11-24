@@ -30,6 +30,7 @@
     {{else}}
       <span class="badge {{if eq $u.Role "superuser"}}badge-gold{{else if eq $u.Role "admin"}}{{else}}badge-muted{{end}}">{{$u.Role}}</span>
       {{if eq $u.Role "user"}}{{if $u.CanCreateCampaigns}}<span class="badge">Can create campaigns</span>{{end}}{{end}}
+      {{if $u.ReadOnly}}<span class="badge badge-muted">Read-only</span>{{end}}
     {{end}}
   </div>
   {{if $u.Email}}<p class="break-all text-sm text-muted">{{$u.Email}}</p>{{end}}
@@ -78,6 +79,7 @@
   {{else if .PermissionNote}}<p class="mt-3 text-sm text-muted">{{.PermissionNote}}</p>
   {{end}}
   {{if .CanLimit}}{{template "admin_campaign_limit" .}}{{end}}
+  {{if .CanReadOnly}}{{template "admin_read_only" .}}{{end}}
   {{if .CanRecover}}{{template "admin_recovery" .}}{{end}}
 </li>
 {{end}}
@@ -124,6 +126,23 @@
     </form>
     {{end}}
   </div>
+</details>
+{{end}}
+
+{{/* The read-only switch of one account (superusers): it signs in and reads, every other request is refused. Takes the adminUserRow. */}}
+{{define "admin_read_only"}}
+{{$u := .U}}
+<details class="mt-3" {{if .ReadOnlyErr}}open{{end}} data-read-only>
+  <summary class="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md text-sm font-medium text-accent-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Read-only <span class="badge badge-muted">{{if $u.ReadOnly}}on{{else}}off{{end}}</span></summary>
+  <form hx-post="/admin/users/{{$u.ID}}/read-only" hx-target="#user-{{$u.ID}}" hx-swap="outerHTML" class="mt-2 space-y-2" novalidate>
+    <input type="hidden" name="email" value="{{$u.Email}}">
+    {{with .ReadOnlyErr}}<div class="alert alert-danger" role="alert">{{.}}</div>{{end}}
+    <label class="flex min-h-11 items-start gap-3 text-sm">
+      <input type="checkbox" role="switch" name="read_only" value="1" {{if $u.ReadOnly}}checked{{end}} class="mt-1 h-5 w-5 accent-[var(--accent)]">
+      <span><span class="font-medium">Read-only account</span><span class="block text-muted">It can sign in and read, nothing else: every other request is refused, including its own settings. For the smoke-test account of a deployment. It applies at once.</span></span>
+    </label>
+    <button class="btn btn-secondary">Save</button>
+  </form>
 </details>
 {{end}}
 

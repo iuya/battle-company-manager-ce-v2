@@ -199,6 +199,19 @@ Lowering a limit never touches the campaigns that exist; it only refuses new one
 - **Handing a campaign over** to an account that is at its limit is refused the same way; a finished campaign counts for nobody, so it can always be handed over.
 - The count is the campaigns the account **organises**, not the ones it plays in.
 
+## Read-only accounts
+
+An account can be made **read-only**: it signs in and reads, and every other request is refused.
+It is meant for the smoke-test account of a deployment, which must prove the site works without being able to change anything.
+
+- A superuser switches it on the account's card (**Read-only**, `users.read_only`); the Users page shows a **Read-only** badge. It applies at once (the account's cached sessions are dropped) and the change is audited (`read_only.changed`, with the previous and the new value).
+- The gate is in the session middleware (`readRequest` in `internal/web/session.go`): a GET, HEAD or OPTIONS passes, and so do signing in and out; any other request answers `403` "This account is read-only", before its handler runs. That includes the account's own settings (password, appearance, closing the account) and joining a campaign.
+- Not a superuser (`core.ErrRefused`): a read-only superuser could not undo it from the web. Not a closed account. An administrator cannot set it (`core.ErrForbidden`).
+- The account does not write to the app's data. Like every session, its session row is renewed in the second half of its life, and the app's logs and the proxy's record its requests.
+- The service is `Auth.SetReadOnly`; `TestReadOnlyAccountCannotWrite` checks every write route that `server.go` registers, so a route added later is covered.
+- A refused action in the page shows nothing (the app has no message for a refused htmx request, as for every other 403): the account is meant for a script, not for a person.
+- The demo world has `viewer@example.com` ([demo-world.md](demo-world.md)).
+
 ## Campaign management
 
 ### Who manages a campaign

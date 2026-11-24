@@ -324,6 +324,8 @@ type auth interface {
 	SetUserPermissions(ctx context.Context, actor core.User, userID int64, role core.Role, canCreateCampaigns bool) error
 	// SetMaxCampaigns gives an account its own limit of unfinished campaigns (nil: the default); superusers only (core.ErrForbidden otherwise).
 	SetMaxCampaigns(ctx context.Context, actor core.User, userID int64, max *int) error
+	// SetReadOnly makes an account read-only or lets it write again; superusers only (core.ErrForbidden otherwise), never a superuser.
+	SetReadOnly(ctx context.Context, actor core.User, userID int64, readOnly bool) error
 }
 
 type Config struct {
@@ -533,6 +535,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /admin/users/{id}/handover", s.requireAdmin(s.handleAdminHandover))
 	mux.HandleFunc("POST /admin/users/{id}/permissions", s.requireAdmin(s.handleAdminPermissions))
 	mux.HandleFunc("POST /admin/users/{id}/campaign-limit", s.requireSuperuser(s.handleAdminCampaignLimit))
+	mux.HandleFunc("POST /admin/users/{id}/read-only", s.requireSuperuser(s.handleAdminReadOnly))
 	mux.HandleFunc("POST /admin/users/{id}/recovery", s.requireSuperuser(s.once(s.handleAdminRecovery)))
 	mux.HandleFunc("POST /admin/users/{id}/recovery/revoke", s.requireSuperuser(s.once(s.handleAdminRecoveryRevoke)))
 	mux.HandleFunc("GET /admin/invitations", s.requireAdmin(s.handleAdminInvitations))

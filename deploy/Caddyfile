@@ -33,8 +33,16 @@
 		}
 	}
 
+	# The access log: JSON on stdout. The path of an invitation or recovery link is a secret. It is cut to /register/REDACTED wherever it
+	# shows: the request line (also as the encoded ?next= of the login page a signed-out visitor is sent to), the Referer a page sends when
+	# it loads its own assets, and the Location of that redirect. The app's own log does the same (logPath in middleware.go).
 	log {
 		output stdout
-		format json
+		format filter {
+			wrap json
+			request>uri regexp "(?i)(/|%2F)(register|recover|join)(/|%2F)[^/?#&%]*" "$1$2$3REDACTED"
+			request>headers>Referer regexp "(?i)(/|%2F)(register|recover|join)(/|%2F)[^/?#&%]*" "$1$2$3REDACTED"
+			resp_headers>Location regexp "(?i)(/|%2F)(register|recover|join)(/|%2F)[^/?#&%]*" "$1$2$3REDACTED"
+		}
 	}
 }

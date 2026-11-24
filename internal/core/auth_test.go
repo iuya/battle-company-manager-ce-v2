@@ -479,3 +479,81 @@ func TestAuth_SetMaxCampaigns(t *testing.T) {
 		}
 	}
 }
+
+func TestAuth_SetReadOnly(t *testing.T) {
+	ctx := context.Background()
+	super, admin := User{ID: 9, Role: RoleSuperuser}, User{ID: 8, Role: RoleAdmin}
+	plain := User{ID: 1, Role: RoleUser}
+
+	t.Run("a superuser switches it on and the entry says who, whom and what changed", func(t *testing.T) {
+		a, repo := newTestAuth(t)
+		repo.EXPECT().UserByID(ctx, int64(1)).Return(plain, false, nil)
+		repo.EXPECT().SetReadOnly(ctx, int64(1), true, ReadOnlyAudit(t0, 9, 1, false, true)).Return(nil)
+		if err := a.SetReadOnly(ctx, super, 1, true); err != nil {
+			t.Fatal(err)
+		}
+	})
+	t.Run("and off again", func(t *testing.T) {
+		a, repo := newTestAuth(t)
+		ro := plain
+		ro.ReadOnly = true
+		repo.EXPECT().UserByID(ctx, int64(1)).Return(ro, false, nil)
+		repo.EXPECT().SetReadOnly(ctx, int64(1), false, ReadOnlyAudit(t0, 9, 1, true, false)).Return(nil)
+		if err := a.SetReadOnly(ctx, super, 1, false); err != nil {
+			t.Fatal(err)
+		}
+	})
+	t.Run("nothing changes, nothing is written", func(t *testing.T) {
+		a, repo := newTestAuth(t)
+		repo.EXPECT().UserByID(ctx, int64(1)).Return(plain, false, nil)
+		if err := a.SetReadOnly(ctx, super, 1, false); err != nil {
+			t.Fatal(err)
+		}
+	})
+	t.Run("an administrator may not", func(t *testing.T) {
+		a, _ := newTestAuth(t) // no repository call expected
+		if err := a.SetReadOnly(ctx, admin, 1, true); !errors.Is(err, ErrForbidden) {
+			t.Errorf("got %v, want ErrForbidden", err)
+		}
+	})
+	t.Run("never a superuser (it could not be undone from the web)", func(t *testing.T) {
+		a, repo := newTestAuth(t)
+		repo.EXPECT().UserByID(ctx, int64(9)).Return(super, false, nil)
+		if err := a.SetReadOnly(ctx, super, 9, true); !errors.Is(err, ErrRefused) {
+			t.Errorf("got %v, want ErrRefused", err)
+		}
+	})
+	t.Run("not a closed account, not an unknown one", func(t *testing.T) {
+		a, repo := newTestAuth(t)
+		repo.EXPECT().UserByID(ctx, int64(2)).Return(plain, true, nil)
+		if err := a.SetReadOnly(ctx, super, 2, true); !errors.Is(err, ErrRefused) {
+			t.Errorf("closed: %v, want ErrRefused", err)
+		}
+		repo.EXPECT().UserByID(ctx, int64(3)).Return(User{}, false, ErrNotFound)
+		if err := a.SetReadOnly(ctx, super, 3, true); !errors.Is(err, ErrNotFound) {
+			t.Errorf("unknown: %v, want ErrNotFound", err)
+		}
+	})
+}
+
+// The session cache answers for a minute: the change must not wait for it.
+func TestAuth_SetReadOnly_AppliesAtOnce(t *testing.T) {
+	ctx := context.Background()
+	a, repo, _ := newClockedAuth(t)
+	plain := User{ID: 1, Role: RoleUser}
+	repo.EXPECT().UserBySession(gomock.Any(), hashToken("tok"), t0).Return(plain, t0.Add(sessionTTL), false, nil)
+	if got, _, err := a.Authenticate(ctx, "tok"); err != nil || got.ReadOnly {
+		t.Fatalf("before: %+v %v", got, err)
+	}
+	repo.EXPECT().UserByID(ctx, int64(1)).Return(plain, false, nil)
+	repo.EXPECT().SetReadOnly(ctx, int64(1), true, gomock.Any()).Return(nil)
+	if err := a.SetReadOnly(ctx, User{ID: 9, Role: RoleSuperuser}, 1, true); err != nil {
+		t.Fatal(err)
+	}
+	ro := plain
+	ro.ReadOnly = true
+	repo.EXPECT().UserBySession(gomock.Any(), hashToken("tok"), t0).Return(ro, t0.Add(sessionTTL), false, nil) // the cache entry was dropped: the next request asks again
+	if got, _, err := a.Authenticate(ctx, "tok"); err != nil || !got.ReadOnly {
+		t.Fatalf("after: %+v %v", got, err)
+	}
+}

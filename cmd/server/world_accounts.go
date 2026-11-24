@@ -34,6 +34,7 @@ var worldAccounts = []worldAccount{
 	{"boromir", "boromir@example.com", "Boromir", core.RoleUser, false, "Closed account at the end of the script: shows as \"Former player\" in the campaigns he played"},
 	{"frodo", "frodo@example.com", "Frodo", core.RoleUser, true, "Signed up, in no campaign: the empty campaign list"},
 	{"pippin", "pippin@example.com", "Pippin", core.RoleUser, false, "Cannot create campaigns (no New campaign button); plays in a few"},
+	{"viewer", "viewer@example.com", "Smoke test", core.RoleUser, false, "Read-only account (the smoke-test account of a deployment): signs in and looks, every other request answers 403; shown as Read-only on the Users page"},
 }
 
 // accounts creates the fixed accounts. The first four of demoUsers (admin, you, eowyn, sauron) are the accounts `make seed`
@@ -47,6 +48,8 @@ func (w *world) accounts() {
 	for key, n := range map[string]int{"you": 200, "faramir": 2} {
 		w.must("campaign limit of "+key, w.b.auth.SetMaxCampaigns(w.ctx, w.user("admin"), w.user(key).ID, &n))
 	}
+	// A superuser made the smoke-test account read-only (docs/admin.md, "Read-only accounts").
+	w.must("read-only account", w.b.auth.SetReadOnly(w.ctx, w.user("admin"), w.user("viewer").ID, true))
 }
 
 func (w *world) printAccounts() {

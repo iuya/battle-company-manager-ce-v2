@@ -40,7 +40,7 @@ The live feed uses one connection outside the pool.
   Each stream holds one coalesced batch and a one-slot wake channel, so a slow browser costs one batch, never a backlog.
 - Publish holds the hub lock only for non-blocking work.
 - A stream frees its slot when its request ends (`context.AfterFunc`).
-- Caps: 10 streams per user, 50 per match.
+- Caps: 10 streams per user, 50 per match, 500 in all.
 
 ### Server limits
 
@@ -66,6 +66,11 @@ Set in `cmd/server/main.go`:
 - **Hostile uploads.** `TestHostileUploadsAnswer4xx` sends the three upload handlers malformed, truncated, huge, deeply nested, oddly typed and badly encoded files and multipart bodies.
   The answer is always a 4xx with a message.
 - **Shutdown.** On SIGINT/SIGTERM the hub closes its streams and in-flight requests get 10 s.
+- **Work without a session.** What a visitor with no account can make the server do:
+  login, registration and recovery attempts are throttled per account and per address (5 and 20 failures in 10 minutes, at most 50,000 keys kept; a link page also per link, 30), and the password hash itself runs in a slot: at most 2 to 8 at once (`argonSlots`, one per core), because each takes 19 MiB, so a flood from many addresses queues instead of exhausting memory (`TestArgonSlotsBoundConcurrentHashes`);
+  `/csp-report` logs at most 60 reports a minute with a 4 KB body; `/healthz`, `/readyz` and `/version` touch nothing or one ping (and the published server kit answers 404 to the first two);
+  `/static/` is served from the binary; every other route needs a session, answered from the in-memory session cache (60 s) or one lookup.
+  The throttles and the session cache are per process, as is the slot bound ([operations.md](operations.md#account-links-logs-audit-retention-several-instances)).
 
 ### Database
 

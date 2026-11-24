@@ -619,6 +619,44 @@ func (c *MockauthRepositorySetMaxCampaignsCall) DoAndReturn(f func(context.Conte
 	return c
 }
 
+// SetReadOnly mocks base method.
+func (m *MockauthRepository) SetReadOnly(ctx context.Context, userID int64, readOnly bool, audit AuditEntry) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetReadOnly", ctx, userID, readOnly, audit)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetReadOnly indicates an expected call of SetReadOnly.
+func (mr *MockauthRepositoryMockRecorder) SetReadOnly(ctx, userID, readOnly, audit any) *MockauthRepositorySetReadOnlyCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetReadOnly", reflect.TypeOf((*MockauthRepository)(nil).SetReadOnly), ctx, userID, readOnly, audit)
+	return &MockauthRepositorySetReadOnlyCall{Call: call}
+}
+
+// MockauthRepositorySetReadOnlyCall wrap *gomock.Call
+type MockauthRepositorySetReadOnlyCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockauthRepositorySetReadOnlyCall) Return(arg0 error) *MockauthRepositorySetReadOnlyCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockauthRepositorySetReadOnlyCall) Do(f func(context.Context, int64, bool, AuditEntry) error) *MockauthRepositorySetReadOnlyCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockauthRepositorySetReadOnlyCall) DoAndReturn(f func(context.Context, int64, bool, AuditEntry) error) *MockauthRepositorySetReadOnlyCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // SetTimezone mocks base method.
 func (m *MockauthRepository) SetTimezone(ctx context.Context, userID int64, zone string) error {
 	m.ctrl.T.Helper()

@@ -47,12 +47,16 @@ To go back to the local build, swap the lines and run `docker compose up -d --bu
 
 ### How a release is built
 
+Every third-party action of the workflows (`.github/workflows/`) is pinned to a commit SHA with its version in a comment (`uses: actions/checkout@<sha> # v7`); Dependabot (`.github/dependabot.yml`) opens one weekly pull request that moves the SHAs and the comments together. The reusable workflow of this repository is called by path.
+
 `.github/workflows/release-image.yml` runs when a tag `v*` is pushed (`git tag v1.1.0 && git push origin v1.1.0`).
 The jobs, in order:
 
 1. `e2e`: the browser tests of `e2e.yml`, called as a reusable workflow (four parallel groups and a final `e2e` job). Any failing group stops the release.
 2. `build`: a matrix of two jobs on native runners (no QEMU), `linux/amd64` on `ubuntu-26.04` and `linux/arm64` on `ubuntu-26.04-arm` (free for public repositories).
    Each job builds its image into its runner and smoke-tests it: it starts the image read-only against a PostgreSQL service container and checks `/readyz`, `/healthz`, the login page, the built-in healthcheck and the architecture.
+   It then scans the image with Trivy (`aquasecurity/trivy-action`): a fixable vulnerability of severity HIGH or CRITICAL, in the base image or in the Go binary, stops the release before anything is pushed; unfixed ones are reported by a normal scan but do not stop it.
+   It also writes the image's software bill of materials (CycloneDX, `sbom-<platform pair>.cdx.json`) and keeps it as an artifact of the run for 90 days; the `release` job attaches the two files to the GitHub release (they describe the image that passed the smoke test, built from the same inputs as the one pushed).
    Only then does it push the image by digest (no tag) with the `GITHUB_TOKEN` (permissions: contents read, packages write) and upload the digest as an artifact.
 3. `merge` (tags only): downloads both digests and creates the multi-platform manifest with the tags of the table above (`docker buildx imagetools create`).
    It then inspects the manifest and **signs the manifest digest** keylessly with cosign (see [Signed images](#signed-images); `id-token: write` is granted to this job only).
@@ -128,6 +132,7 @@ cosign verify \
 
 It prints the verified claims on success and exits non-zero otherwise.
 
+`make proxy-test` (`tests/ci/proxy.test.sh`, a job of the `e2e` workflow) starts the shipped Caddyfile and compose file with an image built from the checkout and checks what only the real proxy shows: the HTTP to HTTPS redirect, the headers and HSTS, the 404 of the probes, the login throttle against a forged `X-Forwarded-For`, the Secure session cookie, and that no link secret, cookie or `Authorization` value reaches a log.
 `make deploy-test` (`tests/ci/deploy.test.sh`) runs the updater against stub `docker`, `curl` and `cosign` for the on, off, bad-signature and missing-cosign paths, and checks the workflow's permissions.
 
 
