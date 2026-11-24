@@ -241,6 +241,13 @@ jobs:
           path: sbom
           pattern: sbom-*
           merge-multiple: true
+      # The releases of this repository are immutable: an asset cannot be added once the release is published, so the SBOMs of the two images
+      # (CycloneDX, made by the build jobs from the image that passed the smoke test) are checked here and attached by the create call below.
+      - name: Check the software bills of materials
+        run: |
+          ls -l sbom
+          test "$(ls sbom/*.cdx.json | wc -l)" = 2 || { echo "::error::expected the SBOMs of two platforms"; exit 1; }
+          for f in sbom/*.cdx.json; do jq -e '.bomFormat == "CycloneDX" and (.components | length) > 0' "$f" >/dev/null || { echo "::error::$f is not a CycloneDX SBOM with components"; exit 1; }; done
       - name: Create the release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -253,15 +260,4 @@ jobs:
             printf '\nImage: `%s:%s` (linux/amd64 and linux/arm64)\n' "$IMAGE_NAME" "${TAG#v}"; } > "$notes"
           flags=(--latest)
           case "$TAG" in *-*) flags=(--prerelease --latest=false) ;; esac
-          gh release create "$TAG" --verify-tag --title "$TAG" --notes-file "$notes" "${flags[@]}"
-      # The SBOMs of the two images (CycloneDX, made by the build jobs from the image that passed the smoke test). Idempotent: a re-run of
-      # this job replaces them.
-      - name: Attach the software bills of materials
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ github.ref_name }}
-        run: |
-          ls -l sbom
-          test "$(ls sbom/*.cdx.json | wc -l)" = 2 || { echo "::error::expected the SBOMs of two platforms"; exit 1; }
-          for f in sbom/*.cdx.json; do jq -e '.bomFormat == "CycloneDX" and (.components | length) > 0' "$f" >/dev/null || { echo "::error::$f is not a CycloneDX SBOM with components"; exit 1; }; done
-          gh release upload "$TAG" sbom/*.cdx.json --clobber
+          gh release create "$TAG" --verify-tag --title "$TAG" --notes-file "$notes" "${flags[@]}" sbom/*.cdx.json
